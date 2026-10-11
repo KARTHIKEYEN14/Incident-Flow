@@ -29,7 +29,13 @@ app.add_middleware(
 # Mount routes under /api/v1
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(incidents_router, prefix="/api/v1")
+from app.testing.api import router as testing_router
+app.include_router(testing_router, prefix="/api/v1")
 app.include_router(ws_router)
+
+from app.api.auth import get_departments
+app.add_api_route("/api/v1/departments", get_departments, methods=["GET"], tags=["Departments"])
+
 
 
 @app.get("/health")

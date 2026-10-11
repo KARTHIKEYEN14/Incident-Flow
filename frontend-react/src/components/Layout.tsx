@@ -1,9 +1,15 @@
-﻿import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ShieldAlert, LayoutDashboard, PlusCircle, LogOut, User as UserIcon, Building2 } from 'lucide-react';
+import { ShieldAlert, LayoutDashboard, PlusCircle, LogOut, User as UserIcon, Building2, Activity } from 'lucide-react';
 
-export default function Layout({ children }: { children: ReactNode }) {
+export default function Layout({ 
+  children, 
+  fullHeight = false 
+}: { 
+  children: ReactNode; 
+  fullHeight?: boolean; 
+}) {
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,6 +61,17 @@ export default function Layout({ children }: { children: ReactNode }) {
               <PlusCircle className={`w-4 h-4 ${location.pathname === '/incidents/new' ? 'text-indigo-600' : 'text-slate-400'}`} />
               New Incident
             </Link>
+            <Link 
+              to="/testing"
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                location.pathname === '/testing' 
+                  ? 'bg-indigo-50 text-indigo-700 shadow-xs border border-indigo-100/80' 
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Activity className={`w-4 h-4 ${location.pathname === '/testing' ? 'text-indigo-600' : 'text-slate-400'}`} />
+              Automated Testing
+            </Link>
           </nav>
         </div>
         
@@ -100,7 +117,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className={`flex-1 min-h-0 ${fullHeight ? 'overflow-y-auto lg:overflow-hidden flex flex-col p-3 md:p-5' : 'overflow-y-auto p-4 md:p-8'}`}>
           {children}
         </div>
       </main>

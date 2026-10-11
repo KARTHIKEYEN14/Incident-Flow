@@ -77,6 +77,17 @@ VALID_STATUS_TRANSITIONS: dict[IncidentStatus, list[IncidentStatus]] = {
 # Models
 # ---------------------------------------------------------------------------
 
+class Department(Base):
+    __tablename__ = "departments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), nullable=False, unique=True, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    users = relationship("User", back_populates="department_rel")
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -85,9 +96,11 @@ class User(Base):
     email = Column(String(320), nullable=False, unique=True, index=True)
     password_hash = Column(String(512), nullable=False)
     department = Column(String(100), nullable=False, default='Engineering')
+    department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
+    department_rel = relationship("Department", back_populates="users")
     created_incidents = relationship("Incident", back_populates="creator", foreign_keys="Incident.creator_id")
     commanded_incidents = relationship("Incident", back_populates="commander", foreign_keys="Incident.commander_id")
     participations = relationship("IncidentParticipant", back_populates="user")

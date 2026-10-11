@@ -54,6 +54,7 @@ export const api = {
   // Auth
   login: (data: any) => api.request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   register: (data: any) => api.request('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  getDepartments: () => api.request('/auth/departments'),
   getMe: () => api.request('/auth/me'),
   getUsers: () => api.request('/auth/users'),
 
@@ -75,4 +76,21 @@ export const api = {
 
   // Events
   getEvents: (id: string) => api.request(`/incidents/${id}/events`),
+
+  // Automated Testing Module
+  getDiscoveredFeatures: () => api.request('/testing/features'),
+  generateTestCases: () => api.request('/testing/generate', { method: 'POST' }),
+  getTestCases: (params?: { feature?: string; category?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.feature) q.append('feature', params.feature);
+    if (params?.category) q.append('category', params.category);
+    const query = q.toString() ? `?${q.toString()}` : '';
+    return api.request(`/testing/cases${query}`);
+  },
+  runTests: (data?: { test_case_ids?: string[]; feature_filter?: string }) =>
+    api.request('/testing/run', { method: 'POST', body: JSON.stringify(data || {}) }),
+  getCurrentBatch: () => api.request('/testing/batch'),
+  getTestRuns: (limit: number = 20) => api.request(`/testing/runs?limit=${limit}`),
+  getTestRunDetails: (runId: string) => api.request(`/testing/runs/${runId}`),
+  cancelTestRun: (runId: string) => api.request(`/testing/runs/${runId}/cancel`, { method: 'POST' }),
 };

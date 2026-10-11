@@ -5,7 +5,8 @@ import { api } from '../lib/api';
 import { 
   Send, Users, Activity, ShieldAlert, ArrowLeft, 
   CheckCircle2, Radio, UserPlus, 
-  X, AlertCircle, Globe, Building2, Lock, Eye
+  X, AlertCircle, Globe, Building2, Lock, Eye,
+  MessageSquare, ArrowRight, UserMinus
 } from 'lucide-react';
 
 interface Participant {
@@ -101,6 +102,7 @@ export default function IncidentRoom() {
             if (prev.some(m => m.id === payload.data.id)) return prev;
             return [...prev, payload.data];
           });
+          api.getEvents(id).then(res => setEvents(res.events || [])).catch(console.error);
         } else if (['status_change', 'severity_change', 'incident_resolved'].includes(payload.type)) {
           setIncident(prev => prev ? ({ ...prev, ...payload.data }) : payload.data);
           api.getEvents(id).then(res => setEvents(res.events || [])).catch(console.error);
@@ -186,6 +188,7 @@ export default function IncidentRoom() {
         if (prev.some(m => m.id === posted.id)) return prev;
         return [...prev, posted];
       });
+      api.getEvents(id).then(res => setEvents(res.events || [])).catch(console.error);
     } catch (e: any) {
       console.error('Failed to send message', e);
       setErrorMessage(e.message || 'Failed to send message');
@@ -286,10 +289,228 @@ export default function IncidentRoom() {
     );
   };
 
+  const getEventMeta = (eventType: string) => {
+    switch (eventType) {
+      case 'INCIDENT_CREATED':
+        return {
+          label: 'Incident Created',
+          color: 'text-indigo-600 bg-indigo-50 border-indigo-200',
+          icon: ShieldAlert
+        };
+      case 'STATUS_CHANGE':
+        return {
+          label: 'Status Updated',
+          color: 'text-amber-600 bg-amber-50 border-amber-200',
+          icon: Activity
+        };
+      case 'SEVERITY_CHANGE':
+        return {
+          label: 'Severity Changed',
+          color: 'text-rose-600 bg-rose-50 border-rose-200',
+          icon: ShieldAlert
+        };
+      case 'INCIDENT_RESOLVED':
+        return {
+          label: 'Incident Resolved',
+          color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+          icon: CheckCircle2
+        };
+      case 'PARTICIPANT_JOINED':
+        return {
+          label: 'Participant Joined',
+          color: 'text-purple-600 bg-purple-50 border-purple-200',
+          icon: UserPlus
+        };
+      case 'PARTICIPANT_LEFT':
+        return {
+          label: 'Participant Left',
+          color: 'text-slate-600 bg-slate-100 border-slate-200',
+          icon: UserMinus
+        };
+      case 'MESSAGE_POSTED':
+        return {
+          label: 'Message Posted',
+          color: 'text-sky-600 bg-sky-50 border-sky-200',
+          icon: MessageSquare
+        };
+      default:
+        return {
+          label: eventType.replace(/_/g, ' '),
+          color: 'text-slate-600 bg-slate-50 border-slate-200',
+          icon: Activity
+        };
+    }
+  };
+
+  const getStatusBadge = (st: string) => {
+    const styles: Record<string, string> = {
+      'INVESTIGATING': 'bg-amber-50 text-amber-700 border-amber-200',
+      'IDENTIFIED': 'bg-rose-50 text-rose-700 border-rose-200',
+      'MONITORING': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      'RESOLVED': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    };
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${styles[st] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+        {st}
+      </span>
+    );
+  };
+
+  const getSeverityBadge = (sev: string) => {
+    const styles: Record<string, string> = {
+      'SEV-1': 'bg-red-50 text-red-700 border-red-200',
+      'SEV-2': 'bg-orange-50 text-orange-700 border-orange-200',
+      'SEV-3': 'bg-blue-50 text-blue-700 border-blue-200',
+      'SEV-4': 'bg-slate-50 text-slate-700 border-slate-200',
+    };
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${styles[sev] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+        {sev}
+      </span>
+    );
+  };
+
+  const getRoleBadge = (role: string) => {
+    const styles: Record<string, string> = {
+      'COMMANDER': 'bg-amber-100 text-amber-800 border-amber-200',
+      'RESPONDER': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      'OBSERVER': 'bg-slate-100 text-slate-700 border-slate-200',
+    };
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${styles[role] || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+        {role}
+      </span>
+    );
+  };
+
+  const renderEventPayload = (event: EventItem) => {
+    const { event_type, payload } = event;
+    if (!payload || typeof payload !== 'object') {
+      if (payload) {
+        return <p className="text-[11px] text-slate-600">{String(payload)}</p>;
+      }
+      return null;
+    }
+
+    switch (event_type) {
+      case 'INCIDENT_CREATED':
+        return (
+          <div className="bg-slate-50/90 rounded-xl p-2.5 border border-slate-200/60 space-y-1.5 mt-1">
+            <div className="font-semibold text-slate-800 text-[11px] flex items-center gap-1.5">
+              <span className="truncate">{payload.title || 'Incident Initialized'}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {payload.severity && getSeverityBadge(payload.severity)}
+              {payload.service && (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white text-slate-700 border border-slate-200 shadow-2xs">
+                  {payload.service}
+                </span>
+              )}
+              {payload.visibility && (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white text-slate-600 border border-slate-200 shadow-2xs">
+                  {payload.visibility}
+                </span>
+              )}
+              {payload.department && (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                  {payload.department}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'PARTICIPANT_JOINED':
+        return (
+          <div className="bg-slate-50/90 rounded-xl p-2 border border-slate-200/60 flex items-center justify-between gap-2 mt-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-5 h-5 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px] shrink-0">
+                {payload.user_name?.[0]?.toUpperCase() || 'U'}
+              </div>
+              <span className="font-bold text-slate-800 text-[11px] truncate">
+                {payload.user_name || 'Team member'}
+              </span>
+            </div>
+            {payload.role && getRoleBadge(payload.role)}
+          </div>
+        );
+
+      case 'PARTICIPANT_LEFT':
+        return (
+          <div className="bg-slate-50/90 rounded-xl p-2 border border-slate-200/60 flex items-center justify-between gap-2 mt-1">
+            <span className="text-[11px] text-slate-600 truncate">
+              <span className="font-bold text-slate-800">{payload.user_name || 'Member'}</span> left incident
+            </span>
+            {payload.role && getRoleBadge(payload.role)}
+          </div>
+        );
+
+      case 'MESSAGE_POSTED':
+        return (
+          <div className="bg-slate-50/90 rounded-xl p-2.5 border border-slate-200/60 flex items-start gap-2 mt-1 text-slate-700">
+            <MessageSquare className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] italic leading-snug line-clamp-2">
+              "{payload.body_preview || 'Posted an update'}"
+            </p>
+          </div>
+        );
+
+      case 'STATUS_CHANGE':
+        return (
+          <div className="bg-slate-50/90 rounded-xl p-2 border border-slate-200/60 flex items-center gap-2 flex-wrap mt-1">
+            {payload.old_status && getStatusBadge(payload.old_status)}
+            <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
+            {payload.new_status && getStatusBadge(payload.new_status)}
+          </div>
+        );
+
+      case 'SEVERITY_CHANGE':
+        return (
+          <div className="bg-slate-50/90 rounded-xl p-2 border border-slate-200/60 flex items-center gap-2 flex-wrap mt-1">
+            {payload.old_severity && getSeverityBadge(payload.old_severity)}
+            <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
+            {payload.new_severity && getSeverityBadge(payload.new_severity)}
+          </div>
+        );
+
+      case 'INCIDENT_RESOLVED':
+        return (
+          <div className="bg-emerald-50/70 rounded-xl p-2.5 border border-emerald-200/70 space-y-1 mt-1">
+            <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-[11px]">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Incident resolved</span>
+            </div>
+            {payload.resolution_note && (
+              <p className="text-[11px] text-emerald-700 italic pl-5 leading-relaxed">
+                "{payload.resolution_note}"
+              </p>
+            )}
+          </div>
+        );
+
+      default: {
+        const cleanEntries = Object.entries(payload).filter(
+          ([k, v]) => v !== null && v !== undefined && k !== 'id' && !k.endsWith('_id')
+        );
+        if (cleanEntries.length === 0) return null;
+        return (
+          <div className="bg-slate-50/90 rounded-xl p-2 border border-slate-200/60 flex flex-wrap gap-1.5 mt-1">
+            {cleanEntries.map(([k, v]) => (
+              <span key={k} className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[10px]">
+                <span className="text-slate-400 capitalize">{k.replace(/_/g, ' ')}: </span>
+                <span className="font-bold">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+              </span>
+            ))}
+          </div>
+        );
+      }
+    }
+  };
+
   if (loading) {
     return (
-      <Layout>
-        <div className="flex h-[80vh] items-center justify-center">
+      <Layout fullHeight>
+        <div className="flex h-full items-center justify-center">
           <div className="w-10 h-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
         </div>
       </Layout>
@@ -298,8 +519,8 @@ export default function IncidentRoom() {
 
   if (accessDenied) {
     return (
-      <Layout>
-        <div className="max-w-md mx-auto my-20 p-8 bg-white border border-rose-200 rounded-2xl shadow-sm text-center">
+      <Layout fullHeight>
+        <div className="max-w-md mx-auto my-auto p-8 bg-white border border-rose-200 rounded-2xl shadow-sm text-center">
           <div className="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-100">
             <Lock className="w-7 h-7 text-rose-600" />
           </div>
@@ -330,13 +551,13 @@ export default function IncidentRoom() {
   const nextStatus = validTransitions[incident.status]?.[0];
 
   return (
-    <Layout>
-      <div className="max-w-7xl mx-auto space-y-6">
+    <Layout fullHeight>
+      <div className="max-w-7xl mx-auto w-full h-full flex flex-col min-h-0 gap-3 md:gap-4">
         {/* Navigation & Status alert */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between shrink-0">
           <button 
             onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 text-xs md:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Dashboard
           </button>
@@ -353,7 +574,7 @@ export default function IncidentRoom() {
         </div>
 
         {errorMessage && (
-          <div className="p-4 bg-red-50 text-red-700 rounded-xl flex items-center justify-between text-sm border border-red-200 shadow-xs">
+          <div className="p-3 bg-red-50 text-red-700 rounded-xl flex items-center justify-between text-xs border border-red-200 shadow-xs shrink-0">
             <div className="flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMessage}</span>
@@ -366,8 +587,8 @@ export default function IncidentRoom() {
 
         {/* View-Only Banner for non-responders */}
         {!canModify && (
-          <div className="p-4 bg-amber-50 border border-amber-200/80 rounded-2xl flex items-start sm:items-center gap-3 text-amber-900 text-xs shadow-xs">
-            <Eye className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+          <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-2xl flex items-start sm:items-center gap-3 text-amber-900 text-xs shadow-xs shrink-0">
+            <Eye className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
             <div className="flex-1">
               <span className="font-bold">View-Only Access: </span>
               You have access to inspect this incident room and view real-time chatter. Modifying incident lifecycle, severity, or resolution requires responder or commander authorization.
@@ -376,11 +597,11 @@ export default function IncidentRoom() {
         )}
 
         {/* Incident Header Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-3 flex-1 min-w-0">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <span className={`px-3 py-1 rounded-full text-xs font-black tracking-wide border ${
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 md:p-5 shadow-xs shrink-0">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-black tracking-wide border ${
                   incident.severity === 'SEV-1' ? 'bg-red-50 text-red-700 border-red-200' :
                   incident.severity === 'SEV-2' ? 'bg-orange-50 text-orange-700 border-orange-200' :
                   incident.severity === 'SEV-3' ? 'bg-blue-50 text-blue-700 border-blue-200' :
@@ -389,7 +610,7 @@ export default function IncidentRoom() {
                   {incident.severity}
                 </span>
 
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
                   incident.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                   incident.status === 'MONITORING' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
                   incident.status === 'IDENTIFIED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
@@ -400,7 +621,7 @@ export default function IncidentRoom() {
 
                 {getVisibilityBadge(incident.visibility, incident.department)}
 
-                <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200/60">
+                <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/60">
                   {incident.service_name}
                 </span>
 
@@ -409,17 +630,17 @@ export default function IncidentRoom() {
                 </span>
               </div>
 
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-snug">
+              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-snug truncate">
                 {incident.title}
               </h1>
 
               {incident.description && (
-                <p className="text-slate-600 text-sm leading-relaxed max-w-4xl">
+                <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-4xl line-clamp-1" title={incident.description}>
                   {incident.description}
                 </p>
               )}
 
-              <div className="flex items-center gap-6 text-xs text-slate-400 pt-1 flex-wrap">
+              <div className="flex items-center gap-4 text-xs text-slate-400 pt-0.5 flex-wrap">
                 <span>Opened: {new Date(incident.created_at).toLocaleString()}</span>
                 {incident.creator_name && <span>Reported by: <b className="text-slate-700">{incident.creator_name}</b></span>}
                 {incident.commander_name && <span>Commander: <b className="text-slate-700">{incident.commander_name}</b></span>}
@@ -427,13 +648,13 @@ export default function IncidentRoom() {
             </div>
 
             {/* Action Buttons for Responders */}
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               {incident.status !== 'RESOLVED' && nextStatus && (
                 <button
                   onClick={() => updateStatus(nextStatus)}
                   disabled={!canModify}
                   title={!canModify ? 'Only commanders and responders can update status' : undefined}
-                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-indigo-100 transition-all flex items-center gap-2 cursor-pointer"
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl font-bold text-xs shadow-md shadow-indigo-100 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   Advance to {nextStatus}
                 </button>
@@ -444,7 +665,7 @@ export default function IncidentRoom() {
                   onClick={() => setShowResolveModal(true)}
                   disabled={!canModify}
                   title={!canModify ? 'Only commanders and responders can resolve' : undefined}
-                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-emerald-100 transition-all flex items-center gap-2 cursor-pointer"
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl font-bold text-xs shadow-md shadow-emerald-100 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" /> Resolve Incident
                 </button>
@@ -468,10 +689,10 @@ export default function IncidentRoom() {
         </div>
 
         {/* Main 2-Column Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5 flex-1 min-h-0">
           {/* Left Column: Live Chatter (2 spans) */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col h-[650px] overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col h-full min-h-0 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <div className="flex items-center gap-2">
                 <Radio className="w-4 h-4 text-indigo-600" />
                 <h3 className="font-bold text-sm text-slate-900">Incident Stream & Collaboration</h3>
@@ -480,7 +701,7 @@ export default function IncidentRoom() {
             </div>
 
             {/* Messages Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-8">
                   <ShieldAlert className="w-12 h-12 text-slate-200 mb-3" />
@@ -493,7 +714,7 @@ export default function IncidentRoom() {
                     <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
                       {m.author_name?.[0]?.toUpperCase() || 'U'}
                     </div>
-                    <div className="flex-1 bg-slate-50/70 border border-slate-100 p-3.5 rounded-xl space-y-1">
+                    <div className="flex-1 bg-slate-50/70 border border-slate-100 p-3 rounded-xl space-y-1">
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-bold text-slate-900">{m.author_name || 'Responder'}</span>
                         <span className="text-slate-400">{new Date(m.created_at).toLocaleTimeString()}</span>
@@ -507,18 +728,18 @@ export default function IncidentRoom() {
             </div>
 
             {/* Message Input Box */}
-            <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-100 bg-slate-50/50 flex gap-2">
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-100 bg-slate-50/50 flex gap-2 shrink-0">
               <input
                 type="text"
                 value={messageInput}
                 onChange={e => setMessageInput(e.target.value)}
                 placeholder="Share diagnosis, mitigation plan, or query responders..."
-                className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+                className="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
               />
               <button 
                 type="submit"
                 disabled={!messageInput.trim()}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2 rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" /> Send
               </button>
@@ -526,10 +747,10 @@ export default function IncidentRoom() {
           </div>
 
           {/* Right Column: Responders & Audit Timeline (1 span) */}
-          <div className="space-y-6">
+          <div className="flex flex-col h-full min-h-0 gap-4">
             {/* Participants Card */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col shrink-0 max-h-48">
+              <div className="flex items-center justify-between mb-2.5 shrink-0">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-indigo-600" />
                   <h3 className="font-bold text-sm text-slate-900">Incident Team ({participants.length})</h3>
@@ -537,7 +758,7 @@ export default function IncidentRoom() {
                 {canModify && (
                   <button
                     onClick={() => setShowAddParticipant(true)}
-                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                    className="p-1 text-indigo-600 hover:bg-indigo-50 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
                     title="Invite employee to this incident"
                   >
                     <UserPlus className="w-3.5 h-3.5" /> Invite
@@ -545,7 +766,7 @@ export default function IncidentRoom() {
                 )}
               </div>
 
-              <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-2 overflow-y-auto min-h-0 pr-1 flex-1">
                 {participants.map((p) => (
                   <div key={p.user_id} className="flex items-center justify-between text-xs p-2 rounded-xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 min-w-0">
@@ -557,45 +778,49 @@ export default function IncidentRoom() {
                         <p className="text-[10px] text-slate-400 truncate">{p.user_email}</p>
                       </div>
                     </div>
-                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
-                      p.role === 'COMMANDER' ? 'bg-amber-100 text-amber-800' :
-                      p.role === 'RESPONDER' ? 'bg-indigo-100 text-indigo-800' :
-                      'bg-slate-200 text-slate-700'
-                    }`}>
-                      {p.role}
-                    </span>
+                    {getRoleBadge(p.role)}
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Audit History Timeline */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col flex-1 min-h-0">
+              <div className="flex items-center gap-2 mb-3 shrink-0">
                 <Activity className="w-4 h-4 text-indigo-600" />
                 <h3 className="font-bold text-sm text-slate-900">Audit History Log</h3>
               </div>
 
-              <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+              <div className="space-y-1 overflow-y-auto min-h-0 pr-1 flex-1">
                 {events.length === 0 ? (
-                  <p className="text-xs text-slate-400">No events logged yet.</p>
+                  <p className="text-xs text-slate-400 py-4 text-center">No events logged yet.</p>
                 ) : (
-                  events.slice().reverse().map((e) => (
-                    <div key={e.id} className="text-xs border-l-2 border-indigo-200 pl-3 py-0.5 space-y-0.5">
-                      <div className="flex items-center justify-between text-[10px] text-slate-400">
-                        <span className="font-bold text-indigo-600 uppercase tracking-wider">{e.event_type.replace(/_/g, ' ')}</span>
-                        <span>{new Date(e.created_at).toLocaleTimeString()}</span>
+                  events.slice().reverse().map((e) => {
+                    const meta = getEventMeta(e.event_type);
+                    const IconComponent = meta.icon;
+                    return (
+                      <div key={e.id} className="relative pl-6 pb-3 last:pb-1 group">
+                        <div className="absolute left-2.5 top-3 bottom-0 w-0.5 bg-slate-200 group-last:hidden" />
+                        <div className={`absolute left-0 top-0.5 w-5 h-5 rounded-full border border-white flex items-center justify-center shadow-2xs ${meta.color}`}>
+                          <IconComponent className="w-2.5 h-2.5" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between gap-1 text-[11px]">
+                            <span className="font-bold text-slate-800">{meta.label}</span>
+                            <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                              {new Date(e.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          {e.actor_name && (
+                            <p className="text-[10px] text-slate-400">
+                              By <span className="font-semibold text-slate-600">{e.actor_name}</span>
+                            </p>
+                          )}
+                          {renderEventPayload(e)}
+                        </div>
                       </div>
-                      {e.actor_name && (
-                        <p className="text-[11px] text-slate-500">By: <span className="font-semibold text-slate-700">{e.actor_name}</span></p>
-                      )}
-                      {e.payload && (
-                        <p className="text-[11px] text-slate-600 font-mono bg-slate-50 p-1.5 rounded border border-slate-100 overflow-x-auto">
-                          {JSON.stringify(e.payload)}
-                        </p>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

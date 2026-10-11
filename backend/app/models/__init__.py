@@ -1,6 +1,7 @@
 """Models package - export all models for Alembic discovery."""
 
 from app.models.models import (
+    Department,
     EventType,
     Incident,
     IncidentEvent,
@@ -13,8 +14,15 @@ from app.models.models import (
     User,
     VALID_STATUS_TRANSITIONS,
 )
+from app.testing.models import (
+    FeatureSnapshot,
+    TestCaseRecord,
+    TestRunRecord,
+    TestCaseResultRecord,
+)
 
 __all__ = [
+    "Department",
     "User",
     "Incident",
     "IncidentParticipant",
@@ -26,4 +34,9 @@ __all__ = [
     "ParticipantRole",
     "EventType",
     "VALID_STATUS_TRANSITIONS",
+    "FeatureSnapshot",
+    "TestCaseRecord",
+    "TestRunRecord",
+    "TestCaseResultRecord",
 ]
+

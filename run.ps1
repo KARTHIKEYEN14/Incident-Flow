@@ -2,11 +2,18 @@
 
 $ProjectRoot = Get-Location
 
+# Clean up any stale processes on port 8000 before starting
+Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | ForEach-Object {
+    if ($_.OwningProcess -gt 0) {
+        Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+    }
+}
+
 Write-Host Starting FastAPI Backend on port 8000... -ForegroundColor Green
 $BackendJob = Start-Job -ScriptBlock {
     param($Root)
     Set-Location (Join-Path $Root backend)
-    & (Join-Path $Root venv\Scripts\python.exe) -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+    & (Join-Path $Root venv\Scripts\python.exe) -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir (Join-Path $Root backend)
 } -ArgumentList $ProjectRoot
 
 Write-Host Starting IncidentFlow React Frontend on port 5173... -ForegroundColor Green
@@ -29,6 +36,11 @@ try {
 }
 finally {
     Write-Host Stopping servers... -ForegroundColor Red
-    Stop-Job -Job $BackendJob, $FrontendJob
-    Remove-Job -Job $BackendJob, $FrontendJob
+    Stop-Job -Job $BackendJob, $FrontendJob -ErrorAction SilentlyContinue
+    Remove-Job -Job $BackendJob, $FrontendJob -ErrorAction SilentlyContinue
+    Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.OwningProcess -gt 0) {
+            Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+        }
+    }
 }

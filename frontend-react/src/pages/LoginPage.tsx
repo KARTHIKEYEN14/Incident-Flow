@@ -1,25 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ShieldAlert, LogIn, KeyRound, Mail, AlertCircle, UserPlus, UserCheck } from 'lucide-react';
+import { ShieldAlert, LogIn, KeyRound, Mail, AlertCircle, UserPlus, UserCheck, Building2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [departmentId, setDepartmentId] = useState('');
+  const [deptLoading, setDeptLoading] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    loadDepartments();
+  }, []);
+
+  const loadDepartments = async () => {
+    try {
+      setDeptLoading(true);
+      const data = await api.getDepartments();
+      setDepartments(data || []);
+    } catch (e: any) {
+      console.error('Failed to load departments', e);
+    } finally {
+      setDeptLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (isRegister && !departmentId) {
+      setError('Please select your department.');
+      return;
+    }
+
     setLoading(true);
     
     try {
       if (isRegister) {
-        await api.register({ name, email, password });
+        await api.register({ 
+          name, 
+          email, 
+          password, 
+          department_id: departmentId 
+        });
         // Automatically login after register
         const result = await api.login({ email, password });
         api.setToken(result.access_token);
@@ -57,20 +87,58 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 p-8 border border-slate-100">
           <form onSubmit={handleSubmit} className="space-y-5">
             {isRegister && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Full Name</label>
-                <div className="relative">
-                  <UserCheck className="absolute left-3.5 top-3 w-5 h-5 text-slate-400" />
-                  <input 
-                    type="text"
-                    required
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all"
-                    placeholder="Jane Doe"
-                  />
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                    Full Name <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <UserCheck className="absolute left-3.5 top-3 w-5 h-5 text-slate-400" />
+                    <input 
+                      type="text"
+                      required
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all"
+                      placeholder="Jane Doe"
+                    />
+                  </div>
                 </div>
-              </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                    Department <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3.5 top-3 w-5 h-5 text-slate-400 pointer-events-none" />
+                    <select
+                      required
+                      value={departmentId}
+                      onChange={e => {
+                        setDepartmentId(e.target.value);
+                        if (error) setError('');
+                      }}
+                      className={`w-full pl-11 pr-8 py-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all cursor-pointer ${
+                        !departmentId && error ? 'border-rose-300 ring-1 ring-rose-300 bg-rose-50/20' : 'border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="">
+                        {deptLoading ? 'Loading departments...' : '-- Select your department --'}
+                      </option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {!departmentId && (
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Choose your department (e.g. IT, HR, Finance, Operations, Security, Marketing).
+                    </p>
+                  )}
+                </div>
+              </>
             )}
 
             <div>
@@ -128,6 +196,7 @@ export default function LoginPage() {
               onClick={() => {
                 setIsRegister(!isRegister);
                 setError('');
+                setDepartmentId('');
               }}
               className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold transition-colors cursor-pointer"
             >

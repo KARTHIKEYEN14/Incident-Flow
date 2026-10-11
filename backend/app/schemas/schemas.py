@@ -21,20 +21,28 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class DepartmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    name: str
+    created_at: Optional[datetime] = None
+
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     name: str
     email: str
     created_at: datetime
-    department: str = 'Engineering'
+    department: Optional[str] = 'Engineering'
+    department_id: Optional[UUID] = None
 
 
 class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     email: EmailStr
     password: str = Field(min_length=6)
-    department: Optional[str] = 'Engineering'
+    department_id: UUID
 
 
 # ---------------------------------------------------------------------------
