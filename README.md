@@ -1,4 +1,4 @@
-# Collaborative Incident & Outage War Room
+# Collaborative Incident & Outage Reports
 
 A real-time incident management application built with FastAPI, PostgreSQL, and Streamlit.
 
