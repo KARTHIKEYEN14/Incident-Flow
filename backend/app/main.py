@@ -17,7 +17,7 @@ app = FastAPI(
     description="Collaborative Incident & Outage Management Platform",
 )
 
-# CORS for Streamlit frontend
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
