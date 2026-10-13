@@ -40,3 +40,5 @@ alembic/__pycache__/
 node_modules/
 frontend-react/node_modules/
 frontend-react/dist/
+.pytest_cache/
+

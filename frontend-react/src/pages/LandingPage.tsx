@@ -40,13 +40,6 @@ export default function LandingPage() {
           {/* Right: Auth Actions */}
           <div className="flex items-center gap-3">
             <Link
-              to="/testing"
-              className="hidden sm:flex px-3 py-1.5 text-xs font-semibold text-[#365CF5] bg-[#365CF5]/10 hover:bg-[#365CF5]/20 border border-[#365CF5]/25 rounded-md transition-colors items-center gap-1.5"
-            >
-              <Activity className="w-3.5 h-3.5" />
-              Testing
-            </Link>
-            <Link
               to="/login"
               className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-[#111827] rounded-md transition-colors"
             >
@@ -92,12 +85,6 @@ export default function LandingPage() {
                   className="px-5 py-2.5 rounded-lg bg-[#365CF5] hover:bg-[#2849D6] text-white text-sm font-semibold shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
                 >
                   Launch IncidentFlow <ArrowRight className="w-4 h-4" />
-                </Link>
-                <Link
-                  to="/testing"
-                  className="px-4 py-2.5 rounded-lg border border-slate-300 hover:border-[#365CF5] text-slate-700 hover:text-[#365CF5] text-sm font-semibold transition-colors flex items-center gap-2 cursor-pointer bg-white shadow-2xs"
-                >
-                  <Activity className="w-4 h-4 text-[#365CF5]" /> Automated Testing
                 </Link>
                 <a
                   href="#workflow"

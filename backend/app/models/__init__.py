@@ -14,13 +14,6 @@ from app.models.models import (
     User,
     VALID_STATUS_TRANSITIONS,
 )
-from app.testing.models import (
-    FeatureSnapshot,
-    TestCaseRecord,
-    TestRunRecord,
-    TestCaseResultRecord,
-)
-
 __all__ = [
     "Department",
     "User",
@@ -34,9 +27,5 @@ __all__ = [
     "ParticipantRole",
     "EventType",
     "VALID_STATUS_TRANSITIONS",
-    "FeatureSnapshot",
-    "TestCaseRecord",
-    "TestRunRecord",
-    "TestCaseResultRecord",
 ]
 

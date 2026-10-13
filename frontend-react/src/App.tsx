@@ -4,7 +4,6 @@ import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import CreateIncident from './pages/CreateIncident';
 import IncidentRoom from './pages/IncidentRoom';
-import TestingDashboard from './pages/TestingDashboard';
 import { api } from './lib/api';
 import type { ReactNode } from 'react';
 
@@ -23,7 +22,6 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/testing" element={<TestingDashboard />} />
           <Route 
             path="/dashboard" 
             element={

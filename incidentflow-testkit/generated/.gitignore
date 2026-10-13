@@ -1,0 +1,4 @@
+# Ignore generated test files, batches, and run reports
+*
+!.gitkeep
+!.gitignore

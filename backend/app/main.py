@@ -1,3 +1,4 @@
+
 """FastAPI application entry point."""
 
 import logging
@@ -29,8 +30,6 @@ app.add_middleware(
 # Mount routes under /api/v1
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(incidents_router, prefix="/api/v1")
-from app.testing.api import router as testing_router
-app.include_router(testing_router, prefix="/api/v1")
 app.include_router(ws_router)
 
 from app.api.auth import get_departments
